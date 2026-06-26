@@ -5,7 +5,7 @@ import { getDB } from "@/lib/spreadsheet/db";
 
 interface Props {
   activeId: number | null;
-  onSelect: (id: number) => void;
+  onSelect: (id: number | null) => void;
 }
 
 export function UploadHistory({ activeId, onSelect }: Props) {
@@ -47,6 +47,9 @@ export function UploadHistory({ activeId, onSelect }: Props) {
                     await db.rows.where("uploadId").equals(u.id!).delete();
                     await db.uploads.delete(u.id!);
                   });
+                  if (u.id === activeId) {
+                    onSelect(null);
+                  }
                 }}
                 onCancel={(e) => e?.stopPropagation()}
               >

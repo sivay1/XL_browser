@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Upload any Excel or CSV file and explore it with auto-generated filters and search — all in your browser.",
+          "Upload any Excel or CSV file and explore it with auto-generated filters and search, all in your browser.",
       },
       { property: "og:title", content: "Spreadsheet Explorer" },
       {
@@ -89,7 +89,7 @@ function Index() {
                 </Typography.Title>
                 <Typography.Paragraph type="secondary" style={{ maxWidth: 520, margin: "0 auto" }}>
                   Upload an Excel or CSV file to get started. Columns and filters are generated
-                  automatically based on your data — text, numbers, dates, and categorical fields
+                  automatically based on your data: text, numbers, dates, and categorical fields
                   each get the right control.
                 </Typography.Paragraph>
                 <Alert
@@ -97,7 +97,7 @@ function Index() {
                   type="info"
                   showIcon
                   title="Demo mode"
-                  description="All parsing and storage happens in your browser — nothing is uploaded to a server. Your data survives a refresh."
+                  description="All parsing and storage happens in your browser. Nothing is uploaded to a server. Your data survives a refresh."
                 />
               </Card>
             ) : (

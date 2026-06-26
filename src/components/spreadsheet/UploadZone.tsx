@@ -50,7 +50,7 @@ export function UploadZone({ onUploaded }: Props) {
       </p>
       <p className="ant-upload-text">Drop an Excel or CSV file here, or click to browse</p>
       <Typography.Text type="secondary">
-        Supports .xlsx, .xls, .csv — parsed entirely in your browser
+        Supports .xlsx, .xls, .csv, parsed entirely in your browser
       </Typography.Text>
     </Dragger>
   );
