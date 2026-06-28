@@ -4,7 +4,7 @@ Spreadsheet Explorer is a client-side web application designed to upload, browse
 
 ---
 
-## 🚀 How it Works
+##  How it Works , Current version:
 
 ### 1. File Upload & Parsing
 When you drop or select a file in the upload zone:
@@ -25,7 +25,7 @@ When you drop or select a file in the upload zone:
 
 ---
 
-## 📅 Data Format Guidelines & Date Warnings
+##  Data Format Guidelines & Date Warnings
 
 For the automatic filters and data grid to render correctly, your spreadsheet columns should have consistent formatting.
 
@@ -52,7 +52,7 @@ To ensure your dates parse and display correctly:
 
 ---
 
-## 🛠️ Local Development
+##  Local Development
 
 To run the project locally on your machine:
 
