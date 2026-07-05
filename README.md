@@ -1,74 +1,91 @@
-# Spreadsheet Explorer
+# Spreadsheet Explorer 🚀
 
-Spreadsheet Explorer is a client-side web application designed to upload, browse, filter, and search Excel (`.xlsx`, `.xls`) or CSV (`.csv`) files instantly in the browser. It automatically detects columns and generates interactive filters (ranges, date pickers, dropdown facets) tailored to your dataset.
+Spreadsheet Explorer is a simple, modern web application that allows you to explore and search any Excel (`.xlsx`, `.xls`) or CSV (`.csv`) file instantly in your web browser.
 
----
-
-## How it Works , Current version:
-
-### 1. File Upload & Parsing
-
-When you drop or select a file in the upload zone:
-
-1. **SheetJS (`xlsx`)** reads the file asynchronously in the browser.
-2. **Header Normalization**: The first row is treated as headers. Any empty header cells are named generically (e.g., `Column 1`), and duplicate column headers are automatically versioned (e.g., `Category (2)`) to ensure unique identifiers.
-3. **Row Formatting**: It iterates through the dataset rows, mapping cell values to their respective normalized header keys.
-4. **Column Analysis**: The application samples up to 200 rows of the uploaded file to infer the data types of each column:
-   - **Boolean**: Inferred if $>80\%$ of sample rows contain values like `true`/`false`, `yes`/`no`, `y`/`n`, or `1`/`0`.
-   - **Number**: Inferred if $>80\%$ of values are numeric.
-   - **Date**: Inferred if $>80\%$ of values parse successfully as a valid date.
-   - **Categorical (Facet)**: If the column is a string but has $\le 30$ unique values, it is treated as a categorical dropdown filter.
-   - **Text**: Default fallback for standard text searches.
-
-### 2. Client-Side Local Storage (No Backend)
-
-- **Zero Backend Database**: The application does **not** upload or transmit your data to any external server.
-- **IndexedDB & Dexie.js**: All parsed file records, meta-information, and raw rows are stored locally in your browser's **IndexedDB** using **Dexie.js** (a lightweight wrapper).
-- **Persistence**: Since it utilizes IndexedDB, your uploaded data survives page refreshes and browser restarts, but it remains fully sandboxed in your browser. Clearing your browser data or application storage will clear the uploaded files.
+This guide is designed for **beginners and non-technical users**. Follow the step-by-step instructions below to install and run the application on your computer.
 
 ---
 
-## Data Format Guidelines & Date Warnings
+## 🛠️ Step 1: Install Node.js (One-Time Setup)
 
-For the automatic filters and data grid to render correctly, your spreadsheet columns should have consistent formatting.
+Before running the application, you need to install **Node.js** (a software platform that allows Javascript applications to run on your computer).
 
-### Expected Column Formats
-
-- **Numbers**: Plain numbers without currency symbols or thousands separators (e.g., `1250.50` instead of `$1,250.50`) ensure perfect numeric range filtering.
-- **Booleans**: Consistent values like `true`/`false` or `yes`/`no`.
-- **Categories**: Columns with repeated values (e.g., Status: `Pending`, `Approved`, `Rejected`) will automatically generate a multi-select dropdown.
-
-### ⚠️ Crucial Date Format Warning
-
-If you upload dates, the browser needs to parse them correctly to set up the date range picker.
-
-- **Excel Formatted Cells**: If the date column in your `.xlsx` or `.xls` file is explicitly formatted as a **Date** type cell in Excel, SheetJS reads it directly as a native JavaScript `Date` object, preserving its accuracy.
-- **String-based Dates**: If dates are stored as plain text/strings in the file, the application relies on JavaScript's native `Date.parse()` to recognize and parse them.
-- **The `DD-MM-YYYY` Problem**:
-  - Native JavaScript `Date.parse()` **does not reliably support** the `DD-MM-YYYY` format (e.g., `25-12-2026`).
-  - If you input `31-12-2026`, the browser will fail to parse it, treating it as an invalid date or plain text, meaning date range filters will not be available.
-  - If you input `05-12-2026` intending it to be **December 5th**, the browser may parse it as **May 12th** (interpreting it as `MM-DD-YYYY`). This will cause the date displayed on the browser to be **wrong**.
-
-#### Recommended Date Formats
-
-To ensure your dates parse and display correctly:
-
-1. **Format the cells as Dates** in Excel before exporting/saving.
-2. Use standard **ISO 8601** format: `YYYY-MM-DD` (e.g., `2026-12-25`).
-3. Use standard US format: `MM/DD/YYYY` (e.g., `12/25/2026`).
+1. Go to the official download page: **[nodejs.org](https://nodejs.org)**.
+2. Download the **LTS (Long Term Support)** version recommended for most users.
+3. Double-click the downloaded file and follow the standard installation wizard instructions (you can click "Next" on all default options).
+4. Once installation is complete, verify that it succeeded:
+   - On **Windows**: Press `Win + R`, type `cmd`, and press Enter.
+   - On **Mac**: Open your **Terminal** app.
+   - In the window that appears, type the following command and press Enter:
+     ```bash
+     node -v
+     ```
+   - If a version number (like `v24.x.x` or `v22.x.x`) is displayed, Node.js is successfully installed!
 
 ---
 
-## Local Development
+## 📂 Step 2: Add Your Spreadsheet File
 
-To run the project locally on your machine:
+Instead of uploading files through a browser button, this application reads your spreadsheet file directly from the project folder.
 
-1. **Install dependencies**:
+1. Open your project folder on your computer.
+2. Navigate to the following directory:
+   [src/lib/spreadsheet/](file:///c:/Users/HP/Downloads/spread-magic-17-main/spread-magic-17-main/src/lib/spreadsheet)
+3. Copy and paste your `.csv`, `.xlsx`, or `.xls` spreadsheet file inside this folder.
+   - _Example: You can paste a file named `students.xlsx` or `courses.csv`._
+   - **Note**: You should only have **one** spreadsheet file inside this folder at a time.
+4. **Dates Support**: If your columns contain dates, they can be formatted in the standard format `DD/MM/YYYY` (for example: `21/02/2026`). The application will automatically detect and parse them as dates.
+
+> [!NOTE]
+> If you do not add any custom spreadsheet file in this folder, the application will automatically fall back to showing a default demonstration list of student course records.
+
+---
+
+## 📦 Step 3: Install Project Dependencies
+
+Next, you need to download the necessary code libraries for this application to run.
+
+1. Open your **Command Prompt** (Windows) or **Terminal** (Mac).
+2. Point the console to the project directory:
+   ```bash
+   cd c:\Users\HP\Downloads\spread-magic-17-main\spread-magic-17-main
+   ```
+3. (Optional) If you use NVS (Node Version Switcher), select node version 24 first:
+   ```bash
+   nvs use 24
+   ```
+4. Run the install command:
    ```bash
    npm install
    ```
-2. **Start the development server**:
+   _This will download the required packages to a folder called `node_modules`. This step can take a minute._
+
+---
+
+## 🚀 Step 4: Run the Application
+
+Now you are ready to start the application!
+
+1. In the same command prompt or terminal window, run the start command:
    ```bash
    npm run dev
    ```
-3. Open `http://localhost:5173` (or the URL shown in your terminal) in your browser.
+2. The terminal will compile the spreadsheet file and start a local web server. You will see output like this:
+
+   ```text
+   [loadSpreadsheet] Found spreadsheet file: students.xlsx. Parsing...
+   [loadSpreadsheet] Successfully compiled 9 rows from students.xlsx.
+
+    Local:   http://localhost:3000/
+   ```
+
+3. Copy the link `http://localhost:3000/` and paste it into your web browser (Google Chrome, Microsoft Edge, Safari, etc.).
+4. The application is now running!
+
+---
+
+## 🔍 How to Use the Explorer
+
+- **Search**: In the left sidebar panel, type any term (like a name, ID number, or course name) in the **Search** box. The spreadsheet table on the right will instantly filter and display only the matching records.
+- **Empty State**: By default, the table will be empty when you open the page to keep the view clean. Simply type in the search box to reveal records.
+- **Sorting**: Click on any column header in the table (e.g. `Name`, `ID_Number`, or `Start_date`) to sort the spreadsheet rows in ascending or descending order.
