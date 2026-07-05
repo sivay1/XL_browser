@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ConfigProvider, Layout, Typography, theme, Card, Alert } from "antd";
-import { TableOutlined } from "@ant-design/icons";
-import { UploadZone } from "@/components/spreadsheet/UploadZone";
-import { UploadHistory } from "@/components/spreadsheet/UploadHistory";
+import { ConfigProvider, Layout, Typography, theme, Card, Input } from "antd";
+import { TableOutlined, SearchOutlined } from "@ant-design/icons";
 import { DataExplorer } from "@/components/spreadsheet/DataExplorer";
+import { MOCK_COLUMNS, MOCK_ROWS } from "@/lib/spreadsheet/mockData";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -12,13 +12,12 @@ export const Route = createFileRoute("/")({
       { title: "Spreadsheet Explorer" },
       {
         name: "description",
-        content:
-          "Upload any Excel or CSV file and explore it with auto-generated filters and search, all in your browser.",
+        content: "Explore Excel data with instant search in your browser.",
       },
       { property: "og:title", content: "Spreadsheet Explorer" },
       {
         property: "og:description",
-        content: "Upload any Excel or CSV file and explore it instantly in your browser.",
+        content: "Explore Excel data instantly in your browser.",
       },
     ],
   }),
@@ -28,7 +27,8 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [mounted, setMounted] = useState(false);
-  const [activeId, setActiveId] = useState<number | null>(null);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const isMobile = useIsMobile();
 
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
@@ -61,48 +61,68 @@ function Index() {
             Spreadsheet Explorer
           </Typography.Title>
           <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
-            Upload · Browse · Filter · Search
+            Browse · Search
           </Typography.Text>
         </Layout.Header>
 
-        <Layout style={{ padding: 24, gap: 16 }}>
-          <Layout.Sider
-            width={300}
-            style={{
-              background: "transparent",
-              marginRight: 16,
-            }}
-          >
-            <Card title="Upload" size="small" style={{ marginBottom: 16 }}>
-              <UploadZone onUploaded={setActiveId} />
+        <Layout
+          style={{
+            padding: isMobile ? 12 : 24,
+            height: "calc(100vh - 64px)",
+            flexDirection: isMobile ? "column" : "row",
+            overflow: "hidden",
+            gap: isMobile ? 12 : 0,
+          }}
+        >
+          {isMobile ? (
+            <Card title="Search" size="small" style={{ width: "100%", flexShrink: 0 }}>
+              <Input
+                allowClear
+                prefix={<SearchOutlined />}
+                placeholder="Search across all columns…"
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                style={{ width: "100%" }}
+              />
             </Card>
-            <Card title="History" size="small">
-              <UploadHistory activeId={activeId} onSelect={setActiveId} />
-            </Card>
-          </Layout.Sider>
-
-          <Layout.Content>
-            {activeId == null ? (
-              <Card style={{ textAlign: "center", padding: 48 }}>
-                <Typography.Title level={3} style={{ marginTop: 0 }}>
-                  No file selected
-                </Typography.Title>
-                <Typography.Paragraph type="secondary" style={{ maxWidth: 520, margin: "0 auto" }}>
-                  Upload an Excel or CSV file to get started. Columns and filters are generated
-                  automatically based on your data: text, numbers, dates, and categorical fields
-                  each get the right control.
-                </Typography.Paragraph>
-                <Alert
-                  style={{ marginTop: 24, textAlign: "left", maxWidth: 520, marginInline: "auto" }}
-                  type="info"
-                  showIcon
-                  title="Demo mode"
-                  description="All parsing and storage happens in your browser. Nothing is uploaded to a server. Your data survives a refresh."
+          ) : (
+            <Layout.Sider
+              width={320}
+              style={{
+                background: "transparent",
+                marginRight: 24,
+                height: "100%",
+                overflow: "auto",
+              }}
+            >
+              <Card title="Search" size="small">
+                <Input
+                  allowClear
+                  prefix={<SearchOutlined />}
+                  placeholder="Search across all columns…"
+                  value={globalFilter}
+                  onChange={(e) => setGlobalFilter(e.target.value)}
+                  style={{ width: "100%" }}
                 />
               </Card>
-            ) : (
-              <DataExplorer uploadId={activeId} />
-            )}
+            </Layout.Sider>
+          )}
+
+          <Layout.Content
+            style={{
+              background: "#fff",
+              padding: isMobile ? 12 : 24,
+              borderRadius: 12,
+              border: "1px solid #f0f0f0",
+              minWidth: 0,
+              height: isMobile ? "calc(100% - 92px)" : "100%",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              flex: "1 1 auto",
+            }}
+          >
+            <DataExplorer columns={MOCK_COLUMNS} data={MOCK_ROWS} globalFilter={globalFilter} />
           </Layout.Content>
         </Layout>
       </Layout>

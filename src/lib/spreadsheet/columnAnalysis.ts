@@ -15,6 +15,19 @@ function isNumberLike(v: unknown): boolean {
 function isDateLike(v: unknown): boolean {
   if (v instanceof Date) return !isNaN(v.getTime());
   if (typeof v === "string" && v.length >= 6) {
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
+      const parts = v.split("/");
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      const d = new Date(year, month - 1, day);
+      return (
+        !isNaN(d.getTime()) &&
+        d.getDate() === day &&
+        d.getMonth() === month - 1 &&
+        d.getFullYear() === year
+      );
+    }
     const t = Date.parse(v);
     return !isNaN(t);
   }
@@ -52,6 +65,19 @@ export function coerceNum(v: unknown): number | null {
 export function coerceDate(v: unknown): Date | null {
   if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
   if (typeof v === "string") {
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
+      const parts = v.split("/");
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      const d = new Date(year, month - 1, day);
+      return !isNaN(d.getTime()) &&
+        d.getDate() === day &&
+        d.getMonth() === month - 1 &&
+        d.getFullYear() === year
+        ? d
+        : null;
+    }
     const t = Date.parse(v);
     return isNaN(t) ? null : new Date(t);
   }
@@ -69,7 +95,9 @@ function analyzeColumn(name: string, rows: Record<string, unknown>[]): ColumnMet
     return { name, type: "string", filterKind: "text" };
   }
 
-  let nums = 0, dates = 0, bools = 0;
+  let nums = 0,
+    dates = 0,
+    bools = 0;
   for (const v of sample) {
     if (isBoolLike(v)) bools++;
     else if (isNumberLike(v)) nums++;

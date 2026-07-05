@@ -1,72 +1,31 @@
-import { useMemo, useState } from "react";
-import { Table, Input, Empty, Tag, Typography } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { useMemo } from "react";
+import { Table, Tag, Typography } from "antd";
 import {
   useReactTable,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   type ColumnDef,
-  type FilterFn,
 } from "@tanstack/react-table";
-import { useLiveQuery } from "dexie-react-hooks";
-import { getDB } from "@/lib/spreadsheet/db";
 import { coerceBool, coerceDate, coerceNum } from "@/lib/spreadsheet/columnAnalysis";
 import type { ColumnMeta } from "@/lib/spreadsheet/types";
-import { FilterPanel, type FilterState } from "./FilterPanel";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Props {
-  uploadId: number;
+  columns: ColumnMeta[];
+  data: Record<string, unknown>[];
+  globalFilter: string;
 }
-
-const columnFilterFn: FilterFn<Record<string, unknown>> = (row, columnId, filterValue) => {
-  const f = filterValue as FilterState[string];
-  if (!f) return true;
-  const cell = row.original[columnId];
-  if (f.kind === "facet") {
-    if (cell == null) return false;
-    return f.values.includes(String(cell));
-  }
-  if (f.kind === "text") {
-    if (cell == null) return false;
-    return String(cell).toLowerCase().includes(f.value.toLowerCase());
-  }
-  if (f.kind === "range") {
-    const n = coerceNum(cell);
-    if (n == null) return false;
-    return n >= f.min && n <= f.max;
-  }
-  if (f.kind === "dateRange") {
-    const d = coerceDate(cell);
-    if (!d) return false;
-    if (f.from && d < new Date(f.from)) return false;
-    if (f.to && d > new Date(f.to)) return false;
-    return true;
-  }
-  if (f.kind === "boolean") {
-    const b = coerceBool(cell);
-    if (b == null) return false;
-    return String(b) === f.value;
-  }
-  return true;
-};
-
-const globalFilterFn: FilterFn<Record<string, unknown>> = (row, _id, query) => {
-  if (!query) return true;
-  const q = String(query).toLowerCase();
-  for (const v of Object.values(row.original)) {
-    if (v == null) continue;
-    if (String(v).toLowerCase().includes(q)) return true;
-  }
-  return false;
-};
 
 function formatCell(v: unknown, type: ColumnMeta["type"]): string {
   if (v == null || v === "") return "";
   if (type === "date") {
     const d = coerceDate(v);
-    return d ? d.toLocaleDateString() : String(v);
+    if (!d) return String(v);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
   }
   if (type === "boolean") {
     const b = coerceBool(v);
@@ -79,53 +38,33 @@ function formatCell(v: unknown, type: ColumnMeta["type"]): string {
   return String(v);
 }
 
-export function DataExplorer({ uploadId }: Props) {
-  const upload = useLiveQuery(() => getDB().uploads.get(uploadId), [uploadId]);
-  const rows = useLiveQuery(
-    () => getDB().rows.where("uploadId").equals(uploadId).toArray(),
-    [uploadId],
-  );
-
-  const [filters, setFilters] = useState<FilterState>({});
-  const [globalFilter, setGlobalFilter] = useState("");
-
-  const data = useMemo(() => (rows ?? []).map((r) => r.data), [rows]);
+export function DataExplorer({ columns, data, globalFilter }: Props) {
+  const filteredData = useMemo(() => {
+    const q = globalFilter.trim().toLowerCase();
+    if (!q) return [];
+    return data.filter((row) =>
+      Object.values(row).some((val) => val != null && String(val).toLowerCase().includes(q)),
+    );
+  }, [data, globalFilter]);
 
   const tableColumns = useMemo<ColumnDef<Record<string, unknown>>[]>(() => {
-    if (!upload) return [];
-    return upload.columns.map((col) => ({
+    return columns.map((col) => ({
       id: col.name,
       accessorFn: (row) => row[col.name],
       header: col.name,
       cell: ({ getValue }) => formatCell(getValue(), col.type),
-      filterFn: columnFilterFn,
       sortingFn: col.type === "number" ? "alphanumeric" : "auto",
     }));
-  }, [upload]);
-
-  const columnFilters = useMemo(
-    () => Object.entries(filters).map(([id, value]) => ({ id, value })),
-    [filters],
-  );
+  }, [columns]);
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns: tableColumns,
-    state: { columnFilters, globalFilter },
-    onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: { pagination: { pageSize: 25 } },
   });
-
-  if (!upload || !rows) {
-    return <Empty description="Loading…" />;
-  }
-
-  const filteredCount = table.getFilteredRowModel().rows.length;
 
   const antdColumns = table.getVisibleLeafColumns().map((col) => ({
     title: (
@@ -141,7 +80,7 @@ export function DataExplorer({ uploadId }: Props) {
     key: col.id,
     ellipsis: true,
     render: (_: unknown, record: Record<string, unknown>) => {
-      const meta = upload.columns.find((c) => c.name === col.id);
+      const meta = columns.find((c) => c.name === col.id);
       return formatCell(record[col.id], meta?.type ?? "string");
     },
   }));
@@ -149,47 +88,34 @@ export function DataExplorer({ uploadId }: Props) {
   const sortedRows = table.getSortedRowModel().rows;
   const dataSource = sortedRows.map((r, i) => ({ ...r.original, __key: i }));
 
+  const isMobile = useIsMobile();
+  const scrollY = isMobile ? "calc(100vh - 310px)" : "calc(100vh - 270px)";
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16, height: "100%" }}>
-      <aside
-        style={{
-          background: "var(--ant-color-bg-container, #fff)",
-          border: "1px solid var(--ant-color-border, #f0f0f0)",
-          borderRadius: 12,
-          padding: 12,
-          overflow: "auto",
-          maxHeight: "calc(100vh - 220px)",
+    <section style={{ minWidth: 0, height: "100%", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "center" }}>
+        <Tag color="blue">
+          {filteredData.length.toLocaleString()} / {data.length.toLocaleString()} rows
+        </Tag>
+        <Typography.Text type="secondary" style={{ marginLeft: "auto" }}>
+          Default Spreadsheet Data
+        </Typography.Text>
+      </div>
+      <Table
+        size="small"
+        rowKey="__key"
+        columns={antdColumns}
+        dataSource={dataSource}
+        locale={{
+          emptyText: globalFilter.trim()
+            ? "No matching records found"
+            : "Enter a search query in the sidebar to display records (e.g., ID Number, Name, Course)",
         }}
-      >
-        <FilterPanel columns={upload.columns} value={filters} onChange={setFilters} />
-      </aside>
-      <section style={{ minWidth: 0 }}>
-        <div style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "center" }}>
-          <Input
-            allowClear
-            prefix={<SearchOutlined />}
-            placeholder="Search across all columns…"
-            value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.target.value)}
-            style={{ maxWidth: 420 }}
-          />
-          <Tag color="blue">
-            {filteredCount.toLocaleString()} / {upload.rowCount.toLocaleString()} rows
-          </Tag>
-          <Typography.Text type="secondary" style={{ marginLeft: "auto" }}>
-            {upload.name}
-          </Typography.Text>
-        </div>
-        <Table
-          size="small"
-          rowKey="__key"
-          columns={antdColumns}
-          dataSource={dataSource}
-          pagination={{ pageSize: 25, showSizeChanger: true, pageSizeOptions: [10, 25, 50, 100] }}
-          scroll={{ x: "max-content", y: "calc(100vh - 340px)" }}
-          sticky
-        />
-      </section>
-    </div>
+        pagination={{ pageSize: 25, showSizeChanger: true, pageSizeOptions: [10, 25, 50, 100] }}
+        scroll={{ x: "max-content", y: scrollY }}
+        style={{ flex: 1, overflow: "hidden" }}
+        sticky
+      />
+    </section>
   );
 }
